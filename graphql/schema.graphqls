@@ -1,13 +1,26 @@
 scalar Time
+# directive @auth on FIELD_DEFINITION
+
+type FieldError {
+  message: String!
+  field: String!
+}
+
+interface FormResponse {
+  ok: Boolean!
+  errors: [FieldError]
+}
+
+type AuthResponse implements FormResponse {
+  ok: Boolean!
+  errors: [FieldError]
+  authToken: AuthToken
+  user: User
+}
 
 type AuthToken {
   accessToken: String!
   expiredAt: Time!
-}
-
-type AuthResponse {
-  authToken: AuthToken!
-  user: User!
 }
 
 type User {
@@ -57,6 +70,7 @@ input LoginInput {
 type Query {
   # meetups(filter: MeetupFilter, limit: Int = 10, offset: Int = 0): [Meetup!]!
   users: [User!]!
+  hello: String! 
 }
 
 type Mutation {

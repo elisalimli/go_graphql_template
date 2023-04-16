@@ -1,5 +1,10 @@
 package validator
 
+type FieldError struct {
+	Message string `json:"message"`
+	Field   string `json:"field"`
+}
+
 type Validation interface {
 	Validate() (bool, map[string]string)
 }

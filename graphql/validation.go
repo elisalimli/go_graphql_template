@@ -3,25 +3,17 @@ package graphql
 import (
 	"context"
 
-	"github.com/99designs/gqlgen/graphql"
-	"github.com/vektah/gqlparser/gqlerror"
-
 	"github.com/elisalimli/go_graphql_template/validator"
 )
 
-func validation(ctx context.Context, v validator.Validation) bool {
+func validation(ctx context.Context, v validator.Validation) (bool, []*validator.FieldError) {
 	isValid, errors := v.Validate()
-
+	fieldErrors := []*validator.FieldError{}
 	if !isValid {
-		for k, e := range errors {
-			graphql.AddError(ctx, &gqlerror.Error{
-				Message: e,
-				Extensions: map[string]interface{}{
-					"field": k,
-				},
-			})
+		for field, message := range errors {
+			fieldErrors = append(fieldErrors, &validator.FieldError{Message: message, Field: field})
 		}
 	}
 
-	return isValid
+	return isValid, fieldErrors
 }

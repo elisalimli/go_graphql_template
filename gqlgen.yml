@@ -15,6 +15,9 @@ model:
 models:
   User:
     model: github.com/elisalimli/go_graphql_template/graphql/models.User
+  FieldError:
+    model: github.com/elisalimli/go_graphql_template/validator.FieldError
+
 
 # Where should the resolver implementations go?
 resolver:

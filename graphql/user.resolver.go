@@ -17,9 +17,9 @@ var (
 )
 
 func (m *mutationResolver) Login(ctx context.Context, input models.LoginInput) (*models.AuthResponse, error) {
-	isValid := validation(ctx, input)
+	isValid, errors := validation(ctx, input)
 	if !isValid {
-		return nil, ErrInput
+		return &models.AuthResponse{Ok: false, Errors: errors}, nil
 	}
 
 	return m.Domain.Login(ctx, input)
@@ -29,10 +29,15 @@ func (r *queryResolver) Users(ctx context.Context) ([]*models.User, error) {
 	panic(fmt.Errorf("not implemented: Users - users"))
 }
 
+func (r *queryResolver) Hello(ctx context.Context) (string, error) {
+	fmt.Println(ctx.Value("currentUser"))
+	return "hello world", nil
+}
+
 func (m *mutationResolver) Register(ctx context.Context, input models.RegisterInput) (*models.AuthResponse, error) {
-	isValid := validation(ctx, input)
+	isValid, errors := validation(ctx, input)
 	if !isValid {
-		return nil, ErrInput
+		return &models.AuthResponse{Ok: false, Errors: errors}, nil
 	}
 
 	return m.Domain.Register(ctx, input)

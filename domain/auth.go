@@ -7,7 +7,13 @@ import (
 	"log"
 
 	"github.com/elisalimli/go_graphql_template/graphql/models"
+	"github.com/elisalimli/go_graphql_template/validator"
 )
+
+func NewFieldError(err validator.FieldError) *models.AuthResponse {
+	return &models.AuthResponse{Ok: false, Errors: []*validator.FieldError{{Message: err.Message, Field: err.Field}}}
+
+}
 
 func (d *Domain) Login(ctx context.Context, input models.LoginInput) (*models.AuthResponse, error) {
 	user, err := d.UsersRepo.GetUserByEmail(input.Email)
@@ -34,12 +40,12 @@ func (d *Domain) Login(ctx context.Context, input models.LoginInput) (*models.Au
 func (d *Domain) Register(ctx context.Context, input models.RegisterInput) (*models.AuthResponse, error) {
 	_, err := d.UsersRepo.GetUserByEmail(input.Email)
 	if err == nil {
-		return nil, errors.New("email already in used")
+		return NewFieldError(validator.FieldError{Message: "Email already in used", Field: "email"}), nil
 	}
 
 	_, err = d.UsersRepo.GetUserByUsername(input.Username)
 	if err == nil {
-		return nil, errors.New("username already in used")
+		return NewFieldError(validator.FieldError{Message: "Username already in used", Field: "username"}), nil
 	}
 
 	user := &models.User{
@@ -62,10 +68,6 @@ func (d *Domain) Register(ctx context.Context, input models.RegisterInput) (*mod
 		}
 	}()
 
-	fmt.Println("debug")
-	fmt.Println("debug")
-	fmt.Println("debug")
-	fmt.Println("debug")
 	fmt.Println("debug")
 	fmt.Println("debug")
 	if err := tx.Create(user).Error; err != nil {

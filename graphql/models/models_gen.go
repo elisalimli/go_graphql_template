@@ -4,11 +4,34 @@ package models
 
 import (
 	"time"
+
+	"github.com/elisalimli/go_graphql_template/validator"
 )
 
+type FormResponse interface {
+	IsFormResponse()
+	GetOk() bool
+	GetErrors() []*validator.FieldError
+}
+
 type AuthResponse struct {
-	AuthToken *AuthToken `json:"authToken"`
-	User      *User      `json:"user"`
+	Ok        bool                    `json:"ok"`
+	Errors    []*validator.FieldError `json:"errors,omitempty"`
+	AuthToken *AuthToken              `json:"authToken,omitempty"`
+	User      *User                   `json:"user,omitempty"`
+}
+
+func (AuthResponse) IsFormResponse()  {}
+func (this AuthResponse) GetOk() bool { return this.Ok }
+func (this AuthResponse) GetErrors() []*validator.FieldError {
+	if this.Errors == nil {
+		return nil
+	}
+	interfaceSlice := make([]*validator.FieldError, 0, len(this.Errors))
+	for _, concrete := range this.Errors {
+		interfaceSlice = append(interfaceSlice, concrete)
+	}
+	return interfaceSlice
 }
 
 type AuthToken struct {
