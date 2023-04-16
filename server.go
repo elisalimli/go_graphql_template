@@ -7,22 +7,59 @@ import (
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
-	"github.com/alisalimli/go_graphql_template/graph"
+	"github.com/elisalimli/go_graphql_template/domain"
+	"github.com/elisalimli/go_graphql_template/graphql"
+	"github.com/elisalimli/go_graphql_template/initializers"
+	"github.com/elisalimli/go_graphql_template/postgres"
+	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
+	"github.com/rs/cors"
 )
 
-const defaultPort = "8080"
+func init() {
+	initializers.LoadEnvVariables()
+	initializers.ConnectToDatabase()
+}
+
+const defaultPort = "4000"
 
 func main() {
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = defaultPort
 	}
+	userRepo := postgres.UsersRepo{DB: initializers.DB}
 
-	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{}}))
+	router := chi.NewRouter()
 
-	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", srv)
+	router.Use(cors.New(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:8000"},
+		AllowCredentials: true,
+		Debug:            true,
+	}).Handler)
+	router.Use(middleware.RequestID)
+	router.Use(middleware.Logger)
+	// router.Use(customMiddleware.AuthMiddleware(userRepo))
+
+	d := domain.NewDomain(userRepo)
+
+	c := graphql.Config{Resolvers: &graphql.Resolver{Domain: d}}
+
+	queryHandler := handler.NewDefaultServer(graphql.NewExecutableSchema(c))
+
+	router.Handle("/", playground.Handler("GraphQL playground", "/query"))
+	router.Handle("/query", queryHandler)
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	log.Fatal(http.ListenAndServe(":"+port, router))
+
 }
+
+// srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{}}))
+
+// http.Handle("/", playground.Handler("GraphQL playground", "/query"))
+// http.Handle("/query", srv)
+
+// log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
+// log.Fatal(http.ListenAndServe(":"+port, nil))
