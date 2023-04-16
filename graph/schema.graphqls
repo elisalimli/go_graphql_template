@@ -1,0 +1,13 @@
+type User {
+    id: ID!
+    username: String!
+    email: String!
+}
+
+type Query {
+    users: [User!]!
+}
+
+type Mutation {
+  setMessage(message: String): String
+}
