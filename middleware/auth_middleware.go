@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -18,14 +19,18 @@ const CurrentUserKey = "currentUser"
 func AuthMiddleware(repo postgres.UsersRepo) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
 			token, err := parseToken(r)
+			fmt.Println("jwt tok", token)
+			fmt.Println("jwt er", err)
+
 			if err != nil {
 				next.ServeHTTP(w, r)
 				return
 			}
 
 			claims, ok := token.Claims.(jwt.MapClaims)
-
+			fmt.Println("jwt claims", claims)
 			if !ok || !token.Valid {
 				next.ServeHTTP(w, r)
 				return
@@ -50,10 +55,10 @@ var authHeaderExtractor = &request.PostExtractionFilter{
 }
 
 func stripBearerPrefixFromToken(token string) (string, error) {
-	bearer := "BEARER"
+	upperBearer := "BEARER"
 
-	if len(token) > len(bearer) && strings.ToUpper(token[0:len(bearer)]) == bearer {
-		return token[len(bearer)+1:], nil
+	if len(token) > len(upperBearer) && strings.ToUpper(token[0:len(upperBearer)]) == upperBearer {
+		return token[len(upperBearer)+1:], nil
 	}
 
 	return token, nil

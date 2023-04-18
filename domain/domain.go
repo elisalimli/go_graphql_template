@@ -1,16 +1,13 @@
 package domain
 
 import (
-	"errors"
-
 	"github.com/elisalimli/go_graphql_template/graphql/models"
 	"github.com/elisalimli/go_graphql_template/postgres"
+	"github.com/elisalimli/go_graphql_template/validator"
 )
 
 var (
-	ErrBadCredentials  = errors.New("email/password combination don't work")
-	ErrUnauthenticated = errors.New("unauthenticated")
-	ErrForbidden       = errors.New("unauthorized")
+	ErrBadCredentials = ("email/password combination don't work")
 )
 
 type Domain struct {
@@ -25,6 +22,7 @@ type Ownable interface {
 	IsOwner(user *models.User) bool
 }
 
-func checkOwnership(o Ownable, user *models.User) bool {
-	return o.IsOwner(user)
+// common graphql error boilerplate
+func NewFieldError(err validator.FieldError) *models.AuthResponse {
+	return &models.AuthResponse{Ok: false, Errors: []*validator.FieldError{{Message: err.Message, Field: err.Field}}}
 }

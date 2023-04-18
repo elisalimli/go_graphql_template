@@ -36,7 +36,7 @@ func (u *User) GenToken() (*AuthToken, error) {
 		ExpiresAt: expiredAt.Unix(),
 		Id:        u.ID,
 		IssuedAt:  time.Now().Unix(),
-		Issuer:    "meetmeup",
+		Issuer:    "go_graphql",
 	})
 
 	accessToken, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))

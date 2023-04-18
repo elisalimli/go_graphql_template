@@ -3,27 +3,21 @@ package domain
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log"
 
 	"github.com/elisalimli/go_graphql_template/graphql/models"
 	"github.com/elisalimli/go_graphql_template/validator"
 )
 
-func NewFieldError(err validator.FieldError) *models.AuthResponse {
-	return &models.AuthResponse{Ok: false, Errors: []*validator.FieldError{{Message: err.Message, Field: err.Field}}}
-
-}
-
 func (d *Domain) Login(ctx context.Context, input models.LoginInput) (*models.AuthResponse, error) {
 	user, err := d.UsersRepo.GetUserByEmail(input.Email)
 	if err != nil {
-		return nil, ErrBadCredentials
+		return NewFieldError(validator.FieldError{Message: ErrBadCredentials, Field: "general"}), nil
 	}
 
 	err = user.ComparePassword(input.Password)
 	if err != nil {
-		return nil, ErrBadCredentials
+		return NewFieldError(validator.FieldError{Message: ErrBadCredentials, Field: "general"}), nil
 	}
 
 	token, err := user.GenToken()
@@ -68,8 +62,6 @@ func (d *Domain) Register(ctx context.Context, input models.RegisterInput) (*mod
 		}
 	}()
 
-	fmt.Println("debug")
-	fmt.Println("debug")
 	if err := tx.Create(user).Error; err != nil {
 		log.Printf("error creating a user: %v", err)
 		return nil, err
