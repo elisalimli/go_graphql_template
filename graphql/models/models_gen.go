@@ -35,8 +35,8 @@ func (this AuthResponse) GetErrors() []*validator.FieldError {
 }
 
 type AuthToken struct {
-	AccessToken string    `json:"accessToken"`
-	ExpiredAt   time.Time `json:"expiredAt"`
+	Token     string    `json:"token"`
+	ExpiredAt time.Time `json:"expiredAt"`
 }
 
 type LoginInput struct {

@@ -55,8 +55,8 @@ type ComplexityRoot struct {
 	}
 
 	AuthToken struct {
-		AccessToken func(childComplexity int) int
-		ExpiredAt   func(childComplexity int) int
+		ExpiredAt func(childComplexity int) int
+		Token     func(childComplexity int) int
 	}
 
 	FieldError struct {
@@ -135,19 +135,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.AuthResponse.User(childComplexity), true
 
-	case "AuthToken.accessToken":
-		if e.complexity.AuthToken.AccessToken == nil {
-			break
-		}
-
-		return e.complexity.AuthToken.AccessToken(childComplexity), true
-
 	case "AuthToken.expiredAt":
 		if e.complexity.AuthToken.ExpiredAt == nil {
 			break
 		}
 
 		return e.complexity.AuthToken.ExpiredAt(childComplexity), true
+
+	case "AuthToken.token":
+		if e.complexity.AuthToken.Token == nil {
+			break
+		}
+
+		return e.complexity.AuthToken.Token(childComplexity), true
 
 	case "FieldError.field":
 		if e.complexity.FieldError.Field == nil {
@@ -535,8 +535,8 @@ func (ec *executionContext) fieldContext_AuthResponse_authToken(ctx context.Cont
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "accessToken":
-				return ec.fieldContext_AuthToken_accessToken(ctx, field)
+			case "token":
+				return ec.fieldContext_AuthToken_token(ctx, field)
 			case "expiredAt":
 				return ec.fieldContext_AuthToken_expiredAt(ctx, field)
 			}
@@ -599,8 +599,8 @@ func (ec *executionContext) fieldContext_AuthResponse_user(ctx context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _AuthToken_accessToken(ctx context.Context, field graphql.CollectedField, obj *models.AuthToken) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_AuthToken_accessToken(ctx, field)
+func (ec *executionContext) _AuthToken_token(ctx context.Context, field graphql.CollectedField, obj *models.AuthToken) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AuthToken_token(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -613,7 +613,7 @@ func (ec *executionContext) _AuthToken_accessToken(ctx context.Context, field gr
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.AccessToken, nil
+		return obj.Token, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -630,7 +630,7 @@ func (ec *executionContext) _AuthToken_accessToken(ctx context.Context, field gr
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_AuthToken_accessToken(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_AuthToken_token(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "AuthToken",
 		Field:      field,
@@ -3305,9 +3305,9 @@ func (ec *executionContext) _AuthToken(ctx context.Context, sel ast.SelectionSet
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("AuthToken")
-		case "accessToken":
+		case "token":
 
-			out.Values[i] = ec._AuthToken_accessToken(ctx, field, obj)
+			out.Values[i] = ec._AuthToken_token(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				invalids++

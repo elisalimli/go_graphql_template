@@ -8,11 +8,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type AuthRefreshToken struct {
-	RefreshToken string    `json:"refreshToken"`
-	ExpiredAt    time.Time `json:"expiredAt"`
-}
-
 type User struct {
 	ID        string     `gorm:"type:uuid;default:uuid_generate_v4();primary_key"`
 	Username  string     `gorm:"type:varchar(100);not null"`
@@ -50,12 +45,12 @@ func (u *User) GenAccessToken() (*AuthToken, error) {
 	}
 
 	return &AuthToken{
-		AccessToken: accessToken,
-		ExpiredAt:   expiredAt,
+		Token:     accessToken,
+		ExpiredAt: expiredAt,
 	}, nil
 }
 
-func (u *User) GenRefreshToken() (*AuthRefreshToken, error) {
+func (u *User) GenRefreshToken() (*AuthToken, error) {
 	expiredAt := time.Now().Add(time.Hour * 24 * 365) // 1 year
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.StandardClaims{
@@ -70,9 +65,9 @@ func (u *User) GenRefreshToken() (*AuthRefreshToken, error) {
 		return nil, err
 	}
 
-	return &AuthRefreshToken{
-		RefreshToken: refreshToken,
-		ExpiredAt:    expiredAt,
+	return &AuthToken{
+		Token:     refreshToken,
+		ExpiredAt: expiredAt,
 	}, nil
 }
 

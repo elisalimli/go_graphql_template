@@ -37,7 +37,7 @@ func (d *Domain) Login(ctx context.Context, input models.LoginInput) (*models.Au
 	rtCookie := http.Cookie{
 		Name:    "refresh_token",
 		Path:    "/", // <--- add this line
-		Value:   refreshToken.RefreshToken,
+		Value:   refreshToken.Token,
 		Expires: refreshToken.ExpiredAt,
 	}
 

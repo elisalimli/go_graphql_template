@@ -19,7 +19,7 @@ type AuthResponse implements FormResponse {
 }
 
 type AuthToken {
-  accessToken: String!
+  token: String!
   expiredAt: Time!
 }
 
