@@ -4,8 +4,12 @@ import (
 	"context"
 	"errors"
 	"log"
+	"net/http"
+
+	// "net/http"
 
 	"github.com/elisalimli/go_graphql_template/graphql/models"
+	"github.com/elisalimli/go_graphql_template/middleware"
 	"github.com/elisalimli/go_graphql_template/validator"
 )
 
@@ -20,13 +24,28 @@ func (d *Domain) Login(ctx context.Context, input models.LoginInput) (*models.Au
 		return NewFieldError(validator.FieldError{Message: ErrBadCredentials, Field: "general"}), nil
 	}
 
-	token, err := user.GenToken()
+	accessToken, err := user.GenAccessToken()
 	if err != nil {
 		return nil, errors.New("something went wrong")
 	}
 
+	refreshToken, err := user.GenRefreshToken()
+	if err != nil {
+		return nil, errors.New("something went wrong")
+	}
+
+	rtCookie := http.Cookie{
+		Name:    "refresh_token",
+		Path:    "/", // <--- add this line
+		Value:   refreshToken.RefreshToken,
+		Expires: refreshToken.ExpiredAt,
+	}
+
+	writer, _ := ctx.Value(middleware.HttpWriterKey).(http.ResponseWriter)
+	http.SetCookie(writer, &rtCookie)
+
 	return &models.AuthResponse{
-		AuthToken: token,
+		AuthToken: accessToken,
 		User:      user,
 	}, nil
 }
@@ -72,7 +91,7 @@ func (d *Domain) Register(ctx context.Context, input models.RegisterInput) (*mod
 		return nil, err
 	}
 
-	token, err := user.GenToken()
+	token, err := user.GenAccessToken()
 	if err != nil {
 		log.Printf("error while generating the token: %v", err)
 		return nil, errors.New("something went wrong")
