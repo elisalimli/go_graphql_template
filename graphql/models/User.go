@@ -1,8 +1,12 @@
 package models
 
 import (
+	"context"
+	"net/http"
 	"os"
 	"time"
+
+	myContext "github.com/elisalimli/go_graphql_template/context"
 
 	"github.com/golang-jwt/jwt"
 	"golang.org/x/crypto/bcrypt"
@@ -69,6 +73,20 @@ func (u *User) GenRefreshToken() (*AuthToken, error) {
 		Token:     refreshToken,
 		ExpiredAt: expiredAt,
 	}, nil
+}
+
+func (u *User) SaveRefreshToken(ctx context.Context, refreshToken *AuthToken) {
+	rtCookie := http.Cookie{
+		Name:    os.Getenv("COOKIE_REFRESH_TOKEN"),
+		Path:    "/", // <--- add this line
+		Value:   refreshToken.Token,
+		Expires: refreshToken.ExpiredAt,
+		Secure:  false,
+	}
+
+	writer, _ := ctx.Value(myContext.HttpWriterKey).(http.ResponseWriter)
+	// saving cookie
+	http.SetCookie(writer, &rtCookie)
 }
 
 func (u *User) ComparePassword(password string) error {

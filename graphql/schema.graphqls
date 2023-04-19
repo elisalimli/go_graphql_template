@@ -10,7 +10,6 @@ interface FormResponse {
   ok: Boolean!
   errors: [FieldError]
 }
-
 type AuthResponse implements FormResponse {
   ok: Boolean!
   errors: [FieldError]
@@ -76,6 +75,7 @@ type Query {
 type Mutation {
   register(input: RegisterInput!): AuthResponse!
   login(input: LoginInput!): AuthResponse!
+  refreshToken: AuthResponse!
   # createMeetup(input: NewMeetup!): Meetup!
   # updateMeetup(id: ID!, input: UpdateMeetup!): Meetup!
   # deleteMeetup(id: ID!): Boolean!

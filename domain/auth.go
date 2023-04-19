@@ -3,14 +3,17 @@ package domain
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	// "net/http"
 
+	myContext "github.com/elisalimli/go_graphql_template/context"
 	"github.com/elisalimli/go_graphql_template/graphql/models"
-	"github.com/elisalimli/go_graphql_template/middleware"
 	"github.com/elisalimli/go_graphql_template/validator"
+	"github.com/golang-jwt/jwt"
 )
 
 func (d *Domain) Login(ctx context.Context, input models.LoginInput) (*models.AuthResponse, error) {
@@ -33,16 +36,7 @@ func (d *Domain) Login(ctx context.Context, input models.LoginInput) (*models.Au
 	if err != nil {
 		return nil, errors.New("something went wrong")
 	}
-
-	rtCookie := http.Cookie{
-		Name:    "refresh_token",
-		Path:    "/", // <--- add this line
-		Value:   refreshToken.Token,
-		Expires: refreshToken.ExpiredAt,
-	}
-
-	writer, _ := ctx.Value(middleware.HttpWriterKey).(http.ResponseWriter)
-	http.SetCookie(writer, &rtCookie)
+	user.SaveRefreshToken(ctx, refreshToken)
 
 	return &models.AuthResponse{
 		AuthToken: accessToken,
@@ -101,4 +95,45 @@ func (d *Domain) Register(ctx context.Context, input models.RegisterInput) (*mod
 		AuthToken: token,
 		User:      user,
 	}, nil
+}
+
+func (d *Domain) RefreshToken(ctx context.Context) (*models.AuthResponse, error) {
+	refreshTokenCookie, ok := ctx.Value(myContext.CookieRefreshTokenKey).(*http.Cookie)
+
+	if !ok {
+		return &models.AuthResponse{Ok: false}, nil
+	}
+
+	// Verify that the refresh token is valid
+	claims := jwt.MapClaims{}
+	_, err := jwt.ParseWithClaims(refreshTokenCookie.Value, claims, func(token *jwt.Token) (interface{}, error) {
+		return []byte(os.Getenv("JWT_SECRET")), nil
+	})
+
+	if err != nil {
+		return &models.AuthResponse{Ok: false}, nil
+	}
+	userId, ok := claims["jti"]
+	if !ok {
+		return &models.AuthResponse{Ok: false}, nil
+	}
+	t, ok := userId.(string)
+	user, err := d.UsersRepo.GetUserByID(t)
+	fmt.Println(t, ok, err)
+	if err != nil {
+		return &models.AuthResponse{Ok: false, Errors: []*validator.FieldError{{Message: "User not found", Field: "general"}}}, nil
+	}
+
+	newRefreshToken, err := user.GenRefreshToken()
+	if err != nil {
+		return nil, errors.New("something went wrong")
+	}
+
+	newAccessToken, err := user.GenAccessToken()
+	if err != nil {
+		return nil, errors.New("something went wrong")
+	}
+	user.SaveRefreshToken(ctx, newRefreshToken)
+
+	return &models.AuthResponse{Ok: true, AuthToken: newAccessToken}, nil
 }

@@ -42,3 +42,8 @@ func (m *mutationResolver) Register(ctx context.Context, input models.RegisterIn
 
 	return m.Domain.Register(ctx, input)
 }
+
+func (m *mutationResolver) RefreshToken(ctx context.Context) (*models.AuthResponse, error) {
+
+	return m.Domain.RefreshToken(ctx)
+}
