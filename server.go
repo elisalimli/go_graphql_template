@@ -33,7 +33,6 @@ func main() {
 	userRepo := postgres.UsersRepo{DB: initializers.DB}
 
 	router := chi.NewRouter()
-
 	router.Use(cors.New(cors.Options{
 		AllowedOrigins:   []string{"http://localhost:4000"},
 		AllowCredentials: true,
@@ -42,6 +41,8 @@ func main() {
 	router.Use(middleware.RequestID)
 	router.Use(middleware.Logger)
 	router.Use(customMiddleware.AuthMiddleware(userRepo))
+	// for passing http writer, reader to context
+	router.Use(customMiddleware.ContextMiddleware)
 
 	d := domain.NewDomain(userRepo)
 
