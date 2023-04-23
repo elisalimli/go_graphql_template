@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -13,13 +14,13 @@ import (
 	"github.com/pkg/errors"
 )
 
-const CurrentUserKey = "currentUser"
+const CurrentUserIdKey = "currentUserId"
 
 func AuthMiddleware(repo postgres.UsersRepo) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 			token, err := parseToken(r)
+			fmt.Println("fired", token, err)
 
 			if err != nil {
 				next.ServeHTTP(w, r)
@@ -31,14 +32,14 @@ func AuthMiddleware(repo postgres.UsersRepo) func(http.Handler) http.Handler {
 				next.ServeHTTP(w, r)
 				return
 			}
+			// fmt.Println("sending a request")
+			// user, err := repo.GetUserByID(claims["jti"].(string))
+			// if err != nil {
+			// 	next.ServeHTTP(w, r)
+			// 	return
+			// }
 
-			user, err := repo.GetUserByID(claims["jti"].(string))
-			if err != nil {
-				next.ServeHTTP(w, r)
-				return
-			}
-
-			ctx := context.WithValue(r.Context(), CurrentUserKey, user)
+			ctx := context.WithValue(r.Context(), CurrentUserIdKey, claims["jti"])
 
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
@@ -77,11 +78,11 @@ func parseToken(r *http.Request) (*jwt.Token, error) {
 func GetCurrentUserFromCTX(ctx context.Context) (*models.User, error) {
 	errNoUserInContext := errors.New("no user in context")
 
-	if ctx.Value(CurrentUserKey) == nil {
+	if ctx.Value(CurrentUserIdKey) == nil {
 		return nil, errNoUserInContext
 	}
 
-	user, ok := ctx.Value(CurrentUserKey).(*models.User)
+	user, ok := ctx.Value(CurrentUserIdKey).(*models.User)
 	if !ok || user.ID == "" {
 		return nil, errNoUserInContext
 	}
