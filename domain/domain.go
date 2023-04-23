@@ -7,7 +7,8 @@ import (
 )
 
 var (
-	ErrBadCredentials = ("email/password combination don't work")
+	ErrBadCredentials     = ("email/password combination don't work")
+	ErrSomethingWentWrong = ("something went wrong")
 )
 
 type Domain struct {

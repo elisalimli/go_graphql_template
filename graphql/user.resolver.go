@@ -44,6 +44,23 @@ func (m *mutationResolver) Register(ctx context.Context, input models.RegisterIn
 }
 
 func (m *mutationResolver) RefreshToken(ctx context.Context) (*models.AuthResponse, error) {
-
 	return m.Domain.RefreshToken(ctx)
+}
+
+func (m *mutationResolver) SendOtp(ctx context.Context, input models.SendOtpInput) (*models.FormResponse, error) {
+	isValid, errors := validation(ctx, input)
+	if !isValid {
+		return &models.FormResponse{Ok: false, Errors: errors}, nil
+	}
+
+	return m.Domain.SendOtp(ctx, input)
+}
+
+func (m *mutationResolver) VerifyOtp(ctx context.Context, input models.VerifyOtpInput) (*models.FormResponse, error) {
+	isValid, errors := validation(ctx, input)
+	if !isValid {
+		return &models.FormResponse{Ok: false, Errors: errors}, nil
+	}
+
+	return m.Domain.VerifyOtp(ctx, input)
 }

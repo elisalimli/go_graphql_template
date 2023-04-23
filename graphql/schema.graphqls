@@ -6,11 +6,18 @@ type FieldError {
   field: String!
 }
 
-interface FormResponse {
+interface IFormResponse {
   ok: Boolean!
   errors: [FieldError]
 }
-type AuthResponse implements FormResponse {
+
+
+type FormResponse {
+  ok: Boolean!
+  errors: [FieldError]
+}
+
+type AuthResponse implements IFormResponse {
   ok: Boolean!
   errors: [FieldError]
   authToken: AuthToken
@@ -26,6 +33,7 @@ type User {
   id: String!
   username: String!
   email: String!
+  phoneNumber: String!
   # meetups: [Meetup!]!
   createdAt: Time!
   updatedAt: Time!
@@ -45,11 +53,21 @@ input RegisterInput {
   confirmPassword: String!
   firstName: String!
   lastName: String!
+  phoneNumber: String!
 }
 
 input LoginInput {
   email: String!
   password: String!
+}
+
+input SendOtpInput {
+  to: String!
+}
+
+input VerifyOtpInput {
+  to: String!
+  code: String!
 }
 
 # input NewMeetup {
@@ -76,6 +94,8 @@ type Mutation {
   register(input: RegisterInput!): AuthResponse!
   login(input: LoginInput!): AuthResponse!
   refreshToken: AuthResponse!
+  sendOtp(input: SendOtpInput!): FormResponse!
+  verifyOtp(input: VerifyOtpInput!): FormResponse!
   # createMeetup(input: NewMeetup!): Meetup!
   # updateMeetup(id: ID!, input: UpdateMeetup!): Meetup!
   # deleteMeetup(id: ID!): Boolean!

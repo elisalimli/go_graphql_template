@@ -23,6 +23,9 @@ func (r RegisterInput) Validate() (bool, map[string]string) {
 	v.Required("lastName", r.LastName)
 	v.MinLength("lastName", r.LastName, 2)
 
+	v.Required("phoneNumber", r.PhoneNumber)
+	v.IsPhoneNumber("phoneNumber", r.PhoneNumber)
+
 	return v.IsValid(), v.Errors
 }
 
@@ -33,6 +36,26 @@ func (l LoginInput) Validate() (bool, map[string]string) {
 	v.IsEmail("email", l.Email)
 
 	v.Required("password", l.Password)
+
+	return v.IsValid(), v.Errors
+}
+
+func (l SendOtpInput) Validate() (bool, map[string]string) {
+	v := validator.New()
+
+	v.Required("to", l.To)
+	v.IsPhoneNumber("to", l.To)
+
+	return v.IsValid(), v.Errors
+}
+
+func (l VerifyOtpInput) Validate() (bool, map[string]string) {
+	v := validator.New()
+
+	v.Required("to", l.To)
+	v.IsPhoneNumber("to", l.To)
+
+	v.Required("code", l.Code)
 
 	return v.IsValid(), v.Errors
 }

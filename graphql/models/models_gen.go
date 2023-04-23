@@ -8,8 +8,8 @@ import (
 	"github.com/elisalimli/go_graphql_template/validator"
 )
 
-type FormResponse interface {
-	IsFormResponse()
+type IFormResponse interface {
+	IsIFormResponse()
 	GetOk() bool
 	GetErrors() []*validator.FieldError
 }
@@ -21,7 +21,7 @@ type AuthResponse struct {
 	User      *User                   `json:"user,omitempty"`
 }
 
-func (AuthResponse) IsFormResponse()  {}
+func (AuthResponse) IsIFormResponse() {}
 func (this AuthResponse) GetOk() bool { return this.Ok }
 func (this AuthResponse) GetErrors() []*validator.FieldError {
 	if this.Errors == nil {
@@ -39,6 +39,11 @@ type AuthToken struct {
 	ExpiredAt time.Time `json:"expiredAt"`
 }
 
+type FormResponse struct {
+	Ok     bool                    `json:"ok"`
+	Errors []*validator.FieldError `json:"errors,omitempty"`
+}
+
 type LoginInput struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
@@ -51,4 +56,14 @@ type RegisterInput struct {
 	ConfirmPassword string `json:"confirmPassword"`
 	FirstName       string `json:"firstName"`
 	LastName        string `json:"lastName"`
+	PhoneNumber     string `json:"phoneNumber"`
+}
+
+type SendOtpInput struct {
+	To string `json:"to"`
+}
+
+type VerifyOtpInput struct {
+	To   string `json:"to"`
+	Code string `json:"code"`
 }

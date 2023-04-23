@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	// "net/http"
 
@@ -14,7 +15,42 @@ import (
 	"github.com/elisalimli/go_graphql_template/graphql/models"
 	"github.com/elisalimli/go_graphql_template/validator"
 	"github.com/golang-jwt/jwt"
+	"github.com/joho/godotenv"
+	openapi "github.com/twilio/twilio-go/rest/verify/v2"
+
+	"github.com/twilio/twilio-go"
 )
+
+func envACCOUNTSID() string {
+	println(godotenv.Unmarshal(".env"))
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Fatalln(err)
+		log.Fatal("Error loading .env file")
+	}
+	return os.Getenv("TWILIO_ACCOUNT_SID")
+}
+
+func envAUTHTOKEN() string {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+	return os.Getenv("TWILIO_AUTH_TOKEN")
+}
+
+func envSERVICESID() string {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+	return os.Getenv("VERIFY_SERVICE_SID")
+}
+
+var client *twilio.RestClient = twilio.NewRestClientWithParams(twilio.ClientParams{
+	Username: envACCOUNTSID(),
+	Password: envAUTHTOKEN(),
+})
 
 func (d *Domain) Login(ctx context.Context, input models.LoginInput) (*models.AuthResponse, error) {
 	user, err := d.UsersRepo.GetUserByEmail(input.Email)
@@ -29,12 +65,12 @@ func (d *Domain) Login(ctx context.Context, input models.LoginInput) (*models.Au
 
 	accessToken, err := user.GenAccessToken()
 	if err != nil {
-		return nil, errors.New("something went wrong")
+		return nil, errors.New(ErrSomethingWentWrong)
 	}
 
 	refreshToken, err := user.GenRefreshToken()
 	if err != nil {
-		return nil, errors.New("something went wrong")
+		return nil, errors.New(ErrSomethingWentWrong)
 	}
 	user.SaveRefreshToken(ctx, refreshToken)
 
@@ -56,14 +92,15 @@ func (d *Domain) Register(ctx context.Context, input models.RegisterInput) (*mod
 	}
 
 	user := &models.User{
-		Username: input.Username,
-		Email:    input.Email,
+		Username:    input.Username,
+		Email:       input.Email,
+		PhoneNumber: input.PhoneNumber,
 	}
 
 	err = user.HashPassword(input.Password)
 	if err != nil {
 		log.Printf("error while hashing password: %v", err)
-		return nil, errors.New("something went wrong")
+		return nil, errors.New(ErrSomethingWentWrong)
 	}
 
 	// TODO: create verification code
@@ -85,15 +122,22 @@ func (d *Domain) Register(ctx context.Context, input models.RegisterInput) (*mod
 		return nil, err
 	}
 
-	token, err := user.GenAccessToken()
+	expiredAt := time.Minute * 10 // 10 mins
+
+	err = d.UsersRepo.RedisClient.Set(ctx, user.PhoneNumber, user.ID, expiredAt).Err()
 	if err != nil {
-		log.Printf("error while generating the token: %v", err)
-		return nil, errors.New("something went wrong")
+		return nil, errors.New(ErrSomethingWentWrong)
 	}
 
+	// token, err := user.GenAccessToken()
+	// if err != nil {
+	// 	log.Printf("error while generating the token: %v", err)
+	// 	return nil, errors.New(ErrSomethingWentWrong)
+	// }
+
 	return &models.AuthResponse{
-		AuthToken: token,
-		User:      user,
+		// AuthToken: token,
+		User: user,
 	}, nil
 }
 
@@ -114,26 +158,71 @@ func (d *Domain) RefreshToken(ctx context.Context) (*models.AuthResponse, error)
 		return &models.AuthResponse{Ok: false}, nil
 	}
 	userId, ok := claims["jti"]
+
 	if !ok {
 		return &models.AuthResponse{Ok: false}, nil
 	}
-	t, ok := userId.(string)
-	user, err := d.UsersRepo.GetUserByID(t)
-	fmt.Println(t, ok, err)
+
+	user, err := d.UsersRepo.GetUserByID(userId.(string))
+
 	if err != nil {
 		return &models.AuthResponse{Ok: false, Errors: []*validator.FieldError{{Message: "User not found", Field: "general"}}}, nil
 	}
 
 	newRefreshToken, err := user.GenRefreshToken()
 	if err != nil {
-		return nil, errors.New("something went wrong")
+		return nil, errors.New(ErrSomethingWentWrong)
 	}
 
 	newAccessToken, err := user.GenAccessToken()
 	if err != nil {
-		return nil, errors.New("something went wrong")
+		return nil, errors.New(ErrSomethingWentWrong)
 	}
 	user.SaveRefreshToken(ctx, newRefreshToken)
 
 	return &models.AuthResponse{Ok: true, AuthToken: newAccessToken}, nil
+}
+
+func (d *Domain) SendOtp(ctx context.Context, input models.SendOtpInput) (*models.FormResponse, error) {
+	params := &openapi.CreateVerificationParams{}
+	params.SetTo(input.To)
+	params.SetChannel("sms")
+
+	resp, err := client.VerifyV2.CreateVerification(envSERVICESID(), params)
+	if err != nil {
+		fmt.Println(err.Error())
+	} else {
+		fmt.Printf("Sent verification '%s'\n", *resp.Sid)
+	}
+
+	return &models.FormResponse{Ok: true}, nil
+
+}
+
+func (d *Domain) VerifyOtp(ctx context.Context, input models.VerifyOtpInput) (*models.FormResponse, error) {
+	params := &openapi.CreateVerificationCheckParams{}
+	params.SetTo(input.To)
+	params.SetCode(input.Code)
+
+	resp, err := client.VerifyV2.CreateVerificationCheck(envSERVICESID(), params)
+	fmt.Println("code", resp)
+	if err != nil {
+		fmt.Println(err.Error())
+		return nil, errors.New(ErrSomethingWentWrong)
+
+	} else if *resp.Status == "approved" {
+		fmt.Println("Correct!")
+		val, err := d.UsersRepo.RedisClient.Get(ctx, input.To).Result()
+		if err != nil {
+			panic(err)
+		}
+
+		user := models.User{ID: val}
+		d.UsersRepo.DB.Model(&user).Model(&user).Update("verified", true)
+
+		return &models.FormResponse{Ok: true}, nil
+	} else {
+		fmt.Println("Incorrect!")
+		return &models.FormResponse{Ok: false}, nil
+	}
 }
