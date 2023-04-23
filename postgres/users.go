@@ -2,11 +2,13 @@ package postgres
 
 import (
 	"github.com/elisalimli/go_graphql_template/graphql/models"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
 type UsersRepo struct {
-	DB *gorm.DB
+	DB          *gorm.DB
+	RedisClient *redis.Client
 }
 
 func (u *UsersRepo) GetUserByField(field, value string) (*models.User, error) {
