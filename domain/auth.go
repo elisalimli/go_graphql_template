@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
 
 	// "net/http"
 
@@ -122,12 +121,12 @@ func (d *Domain) Register(ctx context.Context, input models.RegisterInput) (*mod
 		return nil, err
 	}
 
-	expiredAt := time.Minute * 10 // 10 mins
+	// expiredAt := time.Minute * 10 // 10 mins
 
-	err = d.UsersRepo.RedisClient.Set(ctx, user.PhoneNumber, user.ID, expiredAt).Err()
-	if err != nil {
-		return nil, errors.New(ErrSomethingWentWrong)
-	}
+	// err = d.UsersRepo.RedisClient.Set(ctx, user.PhoneNumber, user.ID, expiredAt).Err()
+	// if err != nil {
+	// 	return nil, errors.New(ErrSomethingWentWrong)
+	// }
 
 	// token, err := user.GenAccessToken()
 	// if err != nil {
@@ -167,6 +166,10 @@ func (d *Domain) RefreshToken(ctx context.Context) (*models.AuthResponse, error)
 
 	if err != nil {
 		return &models.AuthResponse{Ok: false, Errors: []*validator.FieldError{{Message: "User not found", Field: "general"}}}, nil
+	}
+
+	if !user.Verified {
+		return &models.AuthResponse{Ok: false, Errors: []*validator.FieldError{{Message: "You need to verify your account.", Field: "general"}}}, nil
 	}
 
 	newRefreshToken, err := user.GenRefreshToken()
@@ -212,13 +215,11 @@ func (d *Domain) VerifyOtp(ctx context.Context, input models.VerifyOtpInput) (*m
 
 	} else if *resp.Status == "approved" {
 		fmt.Println("Correct!")
-		val, err := d.UsersRepo.RedisClient.Get(ctx, input.To).Result()
 		if err != nil {
 			panic(err)
 		}
 
-		user := models.User{ID: val}
-		d.UsersRepo.DB.Model(&user).Model(&user).Update("verified", true)
+		d.UsersRepo.DB.Model(&models.User{}).Where("phone_number = ?", input.To).Update("verified", true)
 
 		return &models.FormResponse{Ok: true}, nil
 	} else {
